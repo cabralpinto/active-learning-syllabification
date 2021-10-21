@@ -1,0 +1,9 @@
+fire
+Keras-Applications                       
+Keras-Preprocessing
+numpy
+PyYAML
+scipy
+tensorflow
+tensorflow-estimator
+yacs
