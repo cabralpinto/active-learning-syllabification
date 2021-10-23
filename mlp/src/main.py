@@ -1,6 +1,8 @@
 from sklearn.neural_network import MLPClassifier
 from sklearn.exceptions import ConvergenceWarning
-from more_itertools import windowed, flatten
+from modAL.models import ActiveLearner
+from more_itertools import windowed
+import numpy as np
 import warnings
 
 
@@ -16,7 +18,7 @@ def load(filename: str, left: int, right: int):
         )
     ]
     targets = [int(char) for word in words for char in word[2::4]]
-    return inputs, targets
+    return np.array(inputs), np.array(targets)
 
 
 if __name__ == "__main__":
@@ -24,16 +26,23 @@ if __name__ == "__main__":
     TEST = "data/french/test.txt"
     LEFT = 2
     RIGHT = 2
+    QUERIES = 1000
 
-    inputs, targets = load(TRAIN, LEFT, RIGHT)
+    train_inputs, train_targets = load(TRAIN, LEFT, RIGHT)
+    test_inputs, test_targets = load(TEST, LEFT, RIGHT)
     classifier = MLPClassifier(
         solver="adam",
         hidden_layer_sizes=((LEFT + 1 + RIGHT) * 2),
         max_iter=100,
         random_state=0,
     )
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ConvergenceWarning)
-        classifier.fit(inputs, targets)
-    inputs, targets = load(TEST, LEFT, RIGHT)
-    print(classifier.score(inputs, targets))
+    learner = ActiveLearner(classifier)
+    print(len(train_inputs))
+    for i in range(QUERIES):
+        index = learner.query(train_inputs)[0]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=ConvergenceWarning)
+            learner.teach(train_inputs[index], train_targets[index])
+        train_inputs = np.delete(train_inputs, index, axis=0)
+        train_targets = np.delete(train_targets, index)
+        print(learner.score(test_inputs, test_targets))
