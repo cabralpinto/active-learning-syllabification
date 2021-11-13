@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 
-def load(filename: str, left: int, right: int):
+def load(filename: str, left: int, right: int) -> tuple[np.ndarray, np.ndarray]:
     with open(filename, encoding="utf-8") as file:
         words = file.read().split("\n\n")[:-1]
     inputs = [
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         solver="adam",
         hidden_layer_sizes=((LEFT + 1 + RIGHT) * 2),
         max_iter=100,
-        random_state=0,
+        random_state=None,
     )
     learner = ActiveLearner(classifier)
     print(len(train_inputs))
