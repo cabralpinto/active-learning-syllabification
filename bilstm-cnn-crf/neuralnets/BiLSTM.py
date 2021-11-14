@@ -1,25 +1,29 @@
-import numpy as np
-import sys
-import time
+import logging
 import os
 import random
-import logging
+import sys
+import time
+
+import numpy as np
 
 from .utils import try_tensorflow_import
 
 try_tensorflow_import()
 
-from tensorflow import keras
-from tensorflow.keras.optimizers import Adam, Nadam, RMSprop, Adadelta, Adagrad, SGD
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import *
 import tensorflow.keras.backend as K
-
+import tensorflow as tf
 from config import get_cfg_defaults
+from sklearn.base import BaseEstimator
+from tensorflow import keras
+from tensorflow.keras.layers import *
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import (SGD, Adadelta, Adagrad, Adam, Nadam,
+                                         RMSprop)
+
 from .keraslayers.ChainCRF import ChainCRF
 
 
-class BiLSTM:
+class BiLSTM(BaseEstimator):
     """
     A bidirectional LSTM with optional CRF for NLP sequence tagging.
 
@@ -34,6 +38,7 @@ class BiLSTM:
     """
 
     def __init__(self, cfg):
+        tf.compat.v1.experimental.output_all_intermediates(True) # TODO this fixed on large error
         self.cfg = cfg
         self.model = None
         self.model_save_path = cfg.TRAINING.MODEL_SAVE_PATH
@@ -197,7 +202,7 @@ class BiLSTM:
 
     def minibatch_iterate_dataset(self):
         """
-        Create based on word length mini-batches with approx. the same size. 
+        Create based on word length mini-batches with approx. the same size.
         Words and mini-batch chunks are shuffled and used to the train the model
         """
         if self.train_word_length_ranges == None:
@@ -289,7 +294,14 @@ class BiLSTM:
 
             yield batches
 
-    def fit(self, epochs):
+    def fit(self, x, y):
+        if self.model is None:
+            self.build_model()
+        self.model.train_on_batch(x=x[:10], y=y[:10])
+
+        # self.model.fit(x, y)
+
+    def fit_all(self, epochs):
         if self.model is None:
             self.build_model()
 
@@ -397,6 +409,18 @@ class BiLSTM:
 
         return word_lengths
 
+    def predict(self, x):
+        if self.model is None:
+            self.build_model()
+
+        return self.model.predict(x)
+
+    def predict_proba(self, x):
+        if self.model is None:
+            self.build_model()
+
+        return self.model.predict(x)
+
     def predict_labels(self, model, words):
         pred_labels = [None] * len(words)
         word_lengths = self.get_word_lengths(words)
@@ -406,7 +430,6 @@ class BiLSTM:
             for feature_name in self.cfg.TRAINING.FEATURE_NAMES:
                 input_data = np.asarray([words[idx][feature_name] for idx in indices])
                 nn_input.append(input_data)
-
             predictions = model.predict(nn_input, verbose=False)
             predictions = predictions.argmax(axis=-1)  # Predict classes
 
@@ -421,7 +444,7 @@ class BiLSTM:
         """
         Accuracy scores are reported at the word level. This means that if a single
         syllable boundary was incorrectly placed, the entire word is marked incorrect.
-        
+
         Logs the boundary level accuracy as well.
         """
         dev_acc, dev_bound = self.compute_acc(dev_data)
@@ -479,6 +502,7 @@ class BiLSTM:
 
     def save_model(self, epoch, dev_score, test_score):
         import json
+
         import h5py
 
         save_path = (
@@ -510,8 +534,9 @@ class BiLSTM:
 
     @staticmethod
     def load_model(model_path, cfg_path):
-        import h5py
         import json
+
+        import h5py
 
         cfg = get_cfg_defaults()
         cfg.merge_from_file(cfg_path)
@@ -525,7 +550,7 @@ class BiLSTM:
             n_class_labels = f.attrs["n_class_labels"]
             word_length = f.attrs["word_length"]
 
-        if cfg.MODEL.CLASSIFIER == ["crf"]:
+        if cfg.MODEL.CLASSIFIER == "crf":
             from .keraslayers.ChainCRF import create_custom_objects
 
             custom_objects = create_custom_objects()

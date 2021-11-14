@@ -5,6 +5,10 @@ import logging
 import os
 import sys
 
+import numpy as np
+from modAL.models import ActiveLearner
+from modAL.uncertainty import entropy_sampling
+
 from config import get_cfg_defaults
 from neuralnets.BiLSTM import BiLSTM
 from preprocessing import load_dataset
@@ -61,16 +65,19 @@ def train_and_eval_model(cfg):
     create_directory(cfg.CONFIG_NAME)
     logger.info(f"Starting training of `{cfg.CONFIG_NAME}` on dataset `{dataset}`")
 
-    for training_repeat in range(cfg.TRAINING.TRAINING_REPEATS):
-        model = BiLSTM(cfg)
-        model.set_vocab(vocab_size, n_class_labels, word_length, mappings)
-        model.set_dataset(dataset, data)
+    model = BiLSTM(cfg)
+    model.set_vocab(vocab_size, n_class_labels, word_length, mappings)
+    model.set_dataset(dataset, data)
+    learner = ActiveLearner(model, query_strategy=entropy_sampling)
 
-        # Path to store performance scores for dev / test
-        model.store_results(
-            PATH + "/" + cfg.CONFIG_NAME + "/" + str(training_repeat) + ".csv"
-        )
-        model.fit_all(epochs=cfg.TRAINING.EPOCHS)
+    train_X, train_Y = np.array([np.array(i["tokens"]) for i in data["train_matrix"]]),  np.array([np.array(i["boundaries"]) for i in data["train_matrix"]])
+
+    for training_repeat in range(cfg.TRAINING.TRAINING_REPEATS):
+        index = learner.query(train_X)
+        print("asdasdasdasdasdasd")
+        learner.teach(train_X, train_Y)
+        break
+    print("z" * 30)
 
 
 if __name__ == "__main__":

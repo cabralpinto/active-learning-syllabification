@@ -1,9 +1,10 @@
-from sklearn.neural_network import MLPClassifier
-from sklearn.exceptions import ConvergenceWarning
+import warnings
+
+import numpy as np
 from modAL.models import ActiveLearner
 from more_itertools import windowed
-import numpy as np
-import warnings
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.neural_network import MLPClassifier
 
 
 def load(filename: str, left: int, right: int) -> tuple[np.ndarray, np.ndarray]:
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     learner = ActiveLearner(classifier)
     print(len(train_inputs))
     for i in range(QUERIES):
+        print(train_inputs[0])
         index = learner.query(train_inputs)[0]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=ConvergenceWarning)

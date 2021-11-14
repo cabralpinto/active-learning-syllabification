@@ -1,5 +1,5 @@
 fire
-Keras-Applications                       
+Keras-Applications
 Keras-Preprocessing
 numpy
 PyYAML
