@@ -19,7 +19,7 @@ def run(model_path, input_path, config_path):
 
     model = BiLSTM.load_model(model_path, config_path)
     data_matrix = create_data_matrix(words, model.mappings)
-    tags = model.tagWords(data_matrix)["english"]
+    tags = model.tag_words(data_matrix)["english"]
 
     print("\nTagged Words: ")
     for i, word in enumerate(words):

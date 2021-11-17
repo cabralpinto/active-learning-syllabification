@@ -5,15 +5,15 @@ import sys
 import time
 
 import numpy as np
+from sklearn.base import BaseEstimator
 
 from .utils import try_tensorflow_import
 
 try_tensorflow_import()
 
-import tensorflow.keras.backend as K
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from config import get_cfg_defaults
-from sklearn.base import BaseEstimator
 from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
@@ -26,11 +26,9 @@ from .keraslayers.ChainCRF import ChainCRF
 class BiLSTM(BaseEstimator):
     """
     A bidirectional LSTM with optional CRF for NLP sequence tagging.
-
     Author: Jacob Krantz
     Based on work done by Nils Reimers
     TODO: do Apache-2.0 properly
-
     https://github.com/tensorflow/tensorflow/issues/30263#issuecomment-509010526
     As of TF 2.0, we no longer need to selecte CudnnLSTM vs LSTM. Warning
     "Skipping optimization due to error while loading function libraries"
@@ -38,7 +36,7 @@ class BiLSTM(BaseEstimator):
     """
 
     def __init__(self, cfg):
-        tf.compat.v1.experimental.output_all_intermediates(True) # TODO this fixed on large error
+        tf.compat.v1.experimental.output_all_intermediates(True)
         self.cfg = cfg
         self.model = None
         self.model_save_path = cfg.TRAINING.MODEL_SAVE_PATH
@@ -175,14 +173,14 @@ class BiLSTM(BaseEstimator):
         elif optimizer == "sgd":
             opt = SGD(lr=0.1, **optim_params)
         else:
-            assert False, "Optmizer not in list of allowable optimizers"
+            assert False, "Optimizer not in list of allowable optimizers"
 
         model = Model(inputs=[tokens_input], outputs=[output])
         model.compile(loss=loss_function, optimizer=opt)
         model.summary(line_length=100)
         self.model = model
 
-    def train_model(self):
+    def train_model(self, x, y):
         self.epoch += 1
 
         if (
@@ -195,61 +193,64 @@ class BiLSTM(BaseEstimator):
             logging.info("Update Learning Rate to %f" % (lr_update))
             K.set_value(self.model.optimizer.lr, lr_update)
 
+        y = np.array([[[j] for j in i] for i in y])
         loss = 0.0
-        for batch in self.minibatch_iterate_dataset():
-            loss += self.model.train_on_batch(x=batch[1:], y=batch[0])
+        bin_size = self.cfg.TRAINING.MINI_BATCH_SIZE
+        for i in range(0, len(x), bin_size):
+            loss += self.model.train_on_batch(x=x[i:i+bin_size], y=y[i:i+bin_size])
         return loss
 
-    def minibatch_iterate_dataset(self):
+    def minibatch_iterate_dataset(self, x, y):
+        raise Exception("dont use this lol")
         """
         Create based on word length mini-batches with approx. the same size.
         Words and mini-batch chunks are shuffled and used to the train the model
         """
-        if self.train_word_length_ranges == None:
-            """ Create mini batch ranges """
-            self.train_word_length_ranges = {}
-            self.train_mini_batch_ranges = {}
 
-            train_data = self.data["train_matrix"]
-            train_data.sort(
-                key=lambda x: len(x["tokens"])
-            )  # Sort train data by word length
-            train_ranges = []
-            old_word_len = len(train_data[0]["tokens"])
-            idxStart = 0
+        """ Create mini batch ranges """
+        self.train_word_length_ranges = {}
+        self.train_mini_batch_ranges = {}
 
-            # Find start and end of ranges with words with same length
-            for idx in range(len(train_data)):
-                word_len = len(train_data[idx]["tokens"])
+        train_data = self.data["train_matrix"]
+        train_data.sort(
+            key=lambda i: len(i["tokens"])
+        )  # Sort train data by word length
+        train_ranges = []
+        old_word_len = len(train_data[0]["tokens"])
+        idxStart = 0
 
-                if word_len != old_word_len:
-                    train_ranges.append((idxStart, idx))
-                    idxStart = idx
+        # Find start and end of ranges with words with same length
+        for idx in range(len(train_data)):
+            word_len = len(train_data[idx]["tokens"])
 
-                old_word_len = word_len
+            if word_len != old_word_len:
+                train_ranges.append((idxStart, idx))
+                idxStart = idx
 
-            # Add last word
-            train_ranges.append((idxStart, len(train_data)))
+            old_word_len = word_len
 
-            # Break up ranges into smaller mini batch sizes
-            mini_batch_ranges = []
-            for batch_range in train_ranges:
-                range_len = batch_range[1] - batch_range[0]
+        # Add last word
+        train_ranges.append((idxStart, len(train_data)))
 
-                bins = int(
-                    np.ceil(range_len / float(self.cfg.TRAINING.MINI_BATCH_SIZE))
+        # Break up ranges into smaller mini batch sizes
+        mini_batch_ranges = []
+        for batch_range in train_ranges:
+            range_len = batch_range[1] - batch_range[0]
+
+            bins = int(
+                np.ceil(range_len / float(self.cfg.TRAINING.MINI_BATCH_SIZE))
+            )
+            bin_size = int(np.ceil(range_len / float(bins)))
+
+            for bin_nr in range(bins):
+                startIdx = bin_nr * bin_size + batch_range[0]
+                endIdx = min(
+                    batch_range[1], (bin_nr + 1) * bin_size + batch_range[0]
                 )
-                bin_size = int(np.ceil(range_len / float(bins)))
+                mini_batch_ranges.append((startIdx, endIdx))
 
-                for bin_nr in range(bins):
-                    startIdx = bin_nr * bin_size + batch_range[0]
-                    endIdx = min(
-                        batch_range[1], (bin_nr + 1) * bin_size + batch_range[0]
-                    )
-                    mini_batch_ranges.append((startIdx, endIdx))
-
-                self.train_word_length_ranges = train_ranges
-                self.train_mini_batch_ranges = mini_batch_ranges
+            self.train_word_length_ranges = train_ranges
+            self.train_mini_batch_ranges = mini_batch_ranges
 
         # Shuffle training data
         # 1. Shuffle words that have the same length
@@ -297,89 +298,18 @@ class BiLSTM(BaseEstimator):
     def fit(self, x, y):
         if self.model is None:
             self.build_model()
-        self.model.train_on_batch(x=x[:10], y=y[:10])
 
-        # self.model.fit(x, y)
+        self.train_model(x, y)
 
-    def fit_all(self, epochs):
-        if self.model is None:
-            self.build_model()
+        # if dev_score > max_dev_score or epoch == 1:
+        #     max_dev_score = dev_score
+        #     max_test_score = test_score
+        #     no_improvement_since = 0
+        #     self.save_model(epoch, dev_score, test_score)
+        # else:
+        #     no_improvement_since += 1
 
-        train_time_total = 0
-        eval_time_total = 0
-        max_dev_score = 0
-        max_test_score = 0
-        no_improvement_since = 0
-
-        for epoch in range(epochs):
-            sys.stdout.flush()
-            logging.info("\n--------- Epoch %d -----------" % (epoch + 1))
-
-            start_time_epoch = time.time()
-            self.train_model()
-            train_time_epoch = time.time() - start_time_epoch
-            train_time_total += train_time_epoch
-            logging.info(
-                "%.2f sec for training (%.2f total)"
-                % (train_time_epoch, train_time_total)
-            )
-
-            start_time_eval = time.time()
-            dev_score, test_score = self.compute_acc_scores(
-                self.data["dev_matrix"], self.data["test_matrix"]
-            )
-
-            if dev_score > max_dev_score or epoch == 1:
-                max_dev_score = dev_score
-                max_test_score = test_score
-                no_improvement_since = 0
-                self.save_model(epoch, dev_score, test_score)
-            else:
-                no_improvement_since += 1
-
-            eval_time_epoch = time.time() - start_time_eval
-            eval_time_total += eval_time_epoch
-            logging.info(
-                "\nScores from epoch with best dev-scores:\n  Dev-Score: %.4f\n  Test-Score %.4f"
-                % (max_dev_score, max_test_score)
-            )
-            logging.info(
-                "%.2f sec for eval (%.2f total)" % (eval_time_epoch, eval_time_total)
-            )
-
-            if self.results_save_path != None:
-                self.results_save_path.write(
-                    "\t".join(
-                        map(
-                            str,
-                            [
-                                epoch + 1,
-                                dev_score,
-                                test_score,
-                                max_dev_score,
-                                max_test_score,
-                                train_time_epoch,
-                                train_time_total,
-                                eval_time_epoch,
-                            ],
-                        )
-                    )
-                )
-                self.results_save_path.write("\n")
-                self.results_save_path.flush()
-
-            if (
-                self.cfg.TRAINING.EARLY_STOPPING > 0
-                and no_improvement_since >= self.cfg.TRAINING.EARLY_STOPPING
-            ):
-                logging.info(
-                    "!!! Early stopping, no improvement after "
-                    + str(no_improvement_since)
-                    + " epochs !!!"
-                )
-                break
-
-    def tagWords(self, words):
+    def tag_words(self, words):
         """
         words: [{
                     'raw_tokens': ['S', 'V', 't', 'P', 'd'],
@@ -409,19 +339,18 @@ class BiLSTM(BaseEstimator):
 
         return word_lengths
 
-    def predict(self, x):
-        if self.model is None:
-            self.build_model()
-
-        return self.model.predict(x)
-
     def predict_proba(self, x):
         if self.model is None:
             self.build_model()
+        # return np.random.uniform(0, 1, (2, len(x)))
+        predictions = self.model.predict(x, verbose=False)
+        predictions = predictions.argmax(axis=-1)  # Predict classes
+        return predictions
 
-        return self.model.predict(x)
+    def score(self, _x, _y):
+        return self.compute_acc(self.data["test_matrix"])
 
-    def predict_labels(self, model, words):
+    def predict_labels(self, _model, words):
         pred_labels = [None] * len(words)
         word_lengths = self.get_word_lengths(words)
 
@@ -430,7 +359,8 @@ class BiLSTM(BaseEstimator):
             for feature_name in self.cfg.TRAINING.FEATURE_NAMES:
                 input_data = np.asarray([words[idx][feature_name] for idx in indices])
                 nn_input.append(input_data)
-            predictions = model.predict(nn_input, verbose=False)
+
+            predictions = self.model.predict(nn_input, verbose=False)
             predictions = predictions.argmax(axis=-1)  # Predict classes
 
             predIdx = 0
@@ -439,27 +369,6 @@ class BiLSTM(BaseEstimator):
                 predIdx += 1
 
         return pred_labels
-
-    def compute_acc_scores(self, dev_data, test_data):
-        """
-        Accuracy scores are reported at the word level. This means that if a single
-        syllable boundary was incorrectly placed, the entire word is marked incorrect.
-
-        Logs the boundary level accuracy as well.
-        """
-        dev_acc, dev_bound = self.compute_acc(dev_data)
-        test_acc, test_bound = self.compute_acc(test_data)
-
-        logging.info("-- Epoch Accuracies --")
-        logging.info("Word-Level Accuracy")
-        logging.info("Dev: %.4f" % (dev_acc))
-        logging.info("Test: %.4f" % (test_acc))
-
-        logging.info("\nBoundary-Level Accuracy")
-        logging.info("Dev: %.4f" % (dev_bound))
-        logging.info("Test: %.4f" % (test_bound))
-
-        return dev_acc, test_acc
 
     def compute_acc(self, words):
         """
@@ -541,7 +450,7 @@ class BiLSTM(BaseEstimator):
         cfg = get_cfg_defaults()
         cfg.merge_from_file(cfg_path)
         cfg.freeze()
-        logging.info(cfg)
+        # logging.info(cfg)
 
         with h5py.File(model_path, "r") as f:
             mappings = json.loads(f.attrs["mappings"])
@@ -550,7 +459,7 @@ class BiLSTM(BaseEstimator):
             n_class_labels = f.attrs["n_class_labels"]
             word_length = f.attrs["word_length"]
 
-        if cfg.MODEL.CLASSIFIER == "crf":
+        if cfg.MODEL.CLASSIFIER == ["crf"]:
             from .keraslayers.ChainCRF import create_custom_objects
 
             custom_objects = create_custom_objects()

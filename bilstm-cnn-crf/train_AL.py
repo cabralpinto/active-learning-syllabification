@@ -70,14 +70,19 @@ def train_and_eval_model(cfg):
     model.set_dataset(dataset, data)
     learner = ActiveLearner(model, query_strategy=entropy_sampling)
 
-    train_X, train_Y = np.array([np.array(i["tokens"]) for i in data["train_matrix"]]),  np.array([np.array(i["boundaries"]) for i in data["train_matrix"]])
+    train_x = np.array([np.array(i["tokens"]) for i in data["train_matrix"]])
+    train_y = np.array([np.array(i["boundaries"]) for i in data["train_matrix"]])
+    test_x = np.array([np.array(i["tokens"]) for i in data["test_matrix"]])
+    test_y = np.array([np.array(i["boundaries"]) for i in data["test_matrix"]])
 
-    for training_repeat in range(cfg.TRAINING.TRAINING_REPEATS):
-        index = learner.query(train_X)
-        print("asdasdasdasdasdasd")
-        learner.teach(train_X, train_Y)
-        break
-    print("z" * 30)
+    QUERIES = 100
+    for _ in range(QUERIES):
+        index = learner.query(train_x)[0][0]
+        print(f"{index=}")
+        learner.teach(np.array([train_x[index]]), np.array([train_y[index]]))
+        train_x = np.delete(train_x, index, axis=0)
+        train_y = np.delete(train_y, index, axis=0)
+        print(learner.score(test_x, test_y))
 
 
 if __name__ == "__main__":
