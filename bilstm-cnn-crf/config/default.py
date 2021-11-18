@@ -26,7 +26,7 @@ _C.TRAINING = CN()
 # ["english", "italian", "basque", "dutch", "manipuri", "french"]
 _C.TRAINING.DATASET = "french"
 _C.TRAINING.FEATURE_NAMES = ["tokens"]
-_C.TRAINING.MODEL_SAVE_PATH = "models/[DATASET]_[Epoch]_[DevScore]_[TestScore].h5"
+_C.TRAINING.MODEL_SAVE_PATH = "models/[DATASET]_[Query]_[WordLevelScore]_[BoundaryLevelScore].h5"
 # used to get mean and standard deviation of model
 _C.TRAINING.TRAINING_REPEATS = 2  # just trains the model once
 _C.TRAINING.EPOCHS = 120

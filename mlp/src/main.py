@@ -28,23 +28,32 @@ if __name__ == "__main__":
     LEFT = 2
     RIGHT = 2
     QUERIES = 1000
+    INITIAL_PERCENTAGE = 0.01
 
-    train_inputs, train_targets = load(TRAIN, LEFT, RIGHT)
-    test_inputs, test_targets = load(TEST, LEFT, RIGHT)
+    # Load
+    train_x, train_y = load(TRAIN, LEFT, RIGHT)
+    test_x, test_y = load(TEST, LEFT, RIGHT)
+    # Select initial training data
+    initial_ids = np.random.choice(range(len(train_x)), size=int(INITIAL_PERCENTAGE * len(train_x)), replace=False)
+    initial_x, initial_y = train_x[initial_ids], train_y[initial_ids]
+    pool_x, pool_y = np.delete(train_x, initial_ids, axis=0), np.delete(train_y, initial_ids, axis=0)
+
     classifier = MLPClassifier(
         solver="adam",
         hidden_layer_sizes=((LEFT + 1 + RIGHT) * 2),
         max_iter=100,
         random_state=None,
     )
-    learner = ActiveLearner(classifier)
-    print(len(train_inputs))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+        learner = ActiveLearner(classifier, X_training=initial_x, y_training=initial_y)
+        print(learner.score(test_x, test_y))
+
     for i in range(QUERIES):
-        print(train_inputs[0])
-        index = learner.query(train_inputs)[0]
+        index = learner.query(pool_x)[0]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=ConvergenceWarning)
-            learner.teach(train_inputs[index], train_targets[index])
-        train_inputs = np.delete(train_inputs, index, axis=0)
-        train_targets = np.delete(train_targets, index)
-        print(learner.score(test_inputs, test_targets))
+            learner.teach(pool_x[index], pool_y[index])
+        pool_x = np.delete(pool_x, index, axis=0)
+        pool_y = np.delete(pool_y, index)
+        print(learner.score(test_x, test_y))

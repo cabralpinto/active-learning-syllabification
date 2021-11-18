@@ -301,14 +301,6 @@ class BiLSTM(BaseEstimator):
 
         self.train_model(x, y)
 
-        # if dev_score > max_dev_score or epoch == 1:
-        #     max_dev_score = dev_score
-        #     max_test_score = test_score
-        #     no_improvement_since = 0
-        #     self.save_model(epoch, dev_score, test_score)
-        # else:
-        #     no_improvement_since += 1
-
     def tag_words(self, words):
         """
         words: [{
@@ -342,7 +334,7 @@ class BiLSTM(BaseEstimator):
     def predict_proba(self, x):
         if self.model is None:
             self.build_model()
-        # return np.random.uniform(0, 1, (2, len(x)))
+
         predictions = self.model.predict(x, verbose=False)
         predictions = predictions.argmax(axis=-1)  # Predict classes
         return predictions
@@ -409,16 +401,16 @@ class BiLSTM(BaseEstimator):
         else:
             self.results_save_path = None
 
-    def save_model(self, epoch, dev_score, test_score):
+    def save_model(self, query, word_level_acc, boundary_level_acc):
         import json
 
         import h5py
 
         save_path = (
             self.model_save_path.replace("[DATASET]", self.cfg.TRAINING.DATASET)
-            .replace("[DevScore]", "%.4f" % dev_score)
-            .replace("[TestScore]", "%.4f" % test_score)
-            .replace("[Epoch]", str(epoch + 1))
+            .replace("[WordLevelScore]", "%.5f" % word_level_acc)
+            .replace("[BoundaryLevelScore]", "%.5f" % boundary_level_acc)
+            .replace("[Query]", str(query))
         )
 
         directory = os.path.dirname(save_path)
