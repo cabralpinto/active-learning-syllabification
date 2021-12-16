@@ -1,0 +1,26 @@
+{
+    "dataset": "french",
+    "layers": {
+        "embedding": {
+            "dimension": 300
+        },
+        "dropout": {
+            "probability": 0.25
+        },
+        "bilstm": {
+            "units": 300
+        },
+        "cnn": {
+            "layers": 2,
+            "filters": 200
+        },
+        "cnnlayers": 2,
+        "filters": 200,
+        "filtersize": 3,
+        "maxpoolsize": 2
+    },
+    "training": {
+        "minibatchsize": 64,
+        "epochs": 1
+    }
+}
