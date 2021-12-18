@@ -16,15 +16,18 @@ layers = [
         numel(inputs(train)))
     dropoutLayer(config.layers.dropout.probability)
     bilstmLayer(config.layers.bilstm.units)
-    repmat(convolution2dLayer([1 1], config.layers.cnn.filters), ...
-        [config.layers.cnn.layers 1])
-    maxPooling2dLayer([1 1])
+    repmat([
+        convolution1dLayer(config.layers.cnn.size, ...
+            config.layers.cnn.filters)
+        reluLayer
+        globalMaxPooling1dLayer], ...
+    [config.layers.cnn.layers 1])
     concatenationLayer(1, 2)
     fullyConnectedLayer(2 * size(outputs, 2)) % time distributed?
     softmaxLayer
     classificationLayer];
 graph = layerGraph(layers);
-graph = disconnectLayers(graph, "biLSTM", "conv_1");
-graph = connectLayers(graph, "word-embedding", "conv_1");
+graph = disconnectLayers(graph, "biLSTM", "conv1d_1");
+graph = connectLayers(graph, "word-embedding", "conv1d_1");
 graph = connectLayers(graph, "biLSTM", "concat/in2");
 analyzeNetwork(graph);

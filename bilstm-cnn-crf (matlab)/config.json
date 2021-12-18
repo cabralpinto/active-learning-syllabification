@@ -12,7 +12,8 @@
         },
         "cnn": {
             "layers": 2,
-            "filters": 200
+            "filters": 200,
+            "size": 2
         },
         "cnnlayers": 2,
         "filters": 200,
