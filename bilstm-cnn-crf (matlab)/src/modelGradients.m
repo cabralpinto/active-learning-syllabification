@@ -1,8 +1,9 @@
-function [gradients,state,loss] = modelGradients(dlnet,dlX,Y)
+function [gradients,state,loss] = modelGradients(dlnet,x,y)
 
-[dlYPred,state] = forward(dlnet,dlX);
+[yPred,state] = forward(dlnet,x);
+yPred = yPred(:, 1); % LOL CHANGE THIS
 
-loss = crossentropy(dlYPred,Y);
+loss = crossentropy(yPred,y');
 gradients = dlgradient(loss,dlnet.Learnables);
 
 loss = double(gather(extractdata(loss)));
