@@ -33,12 +33,24 @@ graph = connectLayers(graph, "biLSTM", "concat/in2");
 
 dlnet = dlnetwork(graph);
 
-%% training
+%% pre process data
 X_train = inputs(train);
 Y_train = outputs(train, :);
 
+documents = tokenizedDocument(X_train');
+enc = wordEncoding(documents);
+embeddingDimension = 300;
+vocabularySize = enc.NumWords;
+weights = rand(embeddingDimension,vocabularySize+1);
+sequences = doc2sequence(enc,documents,'UnknownWord','nan');
+X = cat(1,sequences{:});
+dlX = dlarray(X,'CT');
+% dlY = embed(dlX,weights);
+
+%% training
 velocity = [];
 iteration = 0;
+start = tic;
 
 figure
 lineLossTrain = animatedline('Color',[0.85 0.325 0.098]);
@@ -48,11 +60,11 @@ ylabel("Loss")
 grid on
 
 for epoch = 1:config.training.epochs
-    for i = 1:numel(X_train)
+    for i = 1:size(dlX, 1)
         iteration = iteration + 1;
 
-        x = X_train(i:i+5);
-        y = Y_train(:, i:i+5);
+        x = dlX(i, :);
+        y = Y_train(i, :);
 
         [gradients,state,loss] = dlfeval(@modelGradients,dlnet,x,y);
         dlnet.State = state;
@@ -61,7 +73,7 @@ for epoch = 1:config.training.epochs
             (1 + config.training.decay*iteration);
         
         [dlnet,velocity] = sgdmupdate(dlnet,gradients,velocity,...
-            config.training.learnRate, ...
+            learnRate, ...
             config.training.momentum);
 
         D = duration(0,0,toc(start),'Format','hh:mm:ss');
