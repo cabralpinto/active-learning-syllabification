@@ -14,11 +14,7 @@
             "layers": 2,
             "filters": 200,
             "size": 2
-        },
-        "cnnlayers": 2,
-        "filters": 200,
-        "filtersize": 3,
-        "maxpoolsize": 2
+        }
     },
     "training": {
         "minibatchsize": 64,
