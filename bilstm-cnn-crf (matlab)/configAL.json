@@ -22,9 +22,7 @@
     },
     "training": {
         "minibatchsize": 64,
-        "epochs": 3,
-        "initialLearnRate": 0.01,
-        "decay": 0.01,
-        "momentum": 0.9
+        "epochs": 1,
+        "queries": 10
     }
 }
