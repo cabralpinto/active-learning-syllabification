@@ -1,5 +1,12 @@
 {
-    "dataset": "french",
+    "datasets": {
+        "names": ["french"],
+        "split": {
+            "training": 0.7,
+            "validate": 0.1,
+            "testing": 0.2
+        }
+    },
     "layers": {
         "embedding": {
             "dimension": 300
@@ -22,7 +29,7 @@
     },
     "training": {
         "minibatchsize": 64,
-        "epochs": 3,
+        "maxepochs": 3,
         "initialLearnRate": 0.01,
         "decay": 0.01,
         "momentum": 0.9,
