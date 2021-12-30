@@ -3,8 +3,8 @@
         "names": ["french"],
         "split": {
             "training": 0.7,
-            "validate": 0.1,
-            "testing": 0.2
+            "validate": 0.15,
+            "testing": 0.15
         }
     },
     "layers": {
@@ -21,18 +21,16 @@
             "layers": 2,
             "filters": 200,
             "size": 2
-        },
-        "cnnlayers": 2,
-        "filters": 200,
-        "filtersize": 3,
-        "maxpoolsize": 2
+        }
     },
     "training": {
         "minibatchsize": 64,
-        "maxepochs": 3,
+        "maxepochs": 120,
         "initialLearnRate": 0.01,
         "decay": 0.01,
         "momentum": 0.9,
-        "queries": 10
+        "queries": 10,
+        "validationfrequency": 50,
+        "validationpatience": 10
     }
 }

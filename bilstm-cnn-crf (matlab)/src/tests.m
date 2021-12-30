@@ -1,7 +1,7 @@
-%% configuration
 clear;
+%% configuration
 config = jsondecode(fileread("config.json"));
-%% data
+%% dataset
 % load dataset
 text = fileread(fullfile("data", config.datasets.names{1} + ".txt"));
 % extract and preprocess inputs and outputs
@@ -11,8 +11,11 @@ text([breaks breaks + 1]) = [];
 inputs = mat2cell(double(text(1:5:end)), 1, lengths);
 outputs = mat2cell(categorical(text(3:5:end) - '0'), 1, lengths);
 % remove duplicate words
-[~, keep] = unique(mat2cell(text(1:5:end), 1, lengths));
-[inputs, outputs] = deal(inputs(keep), outputs(keep));
+[~, idx] = unique(mat2cell(text(1:5:end), 1, lengths));
+[inputs, outputs, lengths] = deal(inputs(idx), outputs(idx), lengths(idx));
+% sort words by length
+[lengths, idx] = sort(lengths);
+[inputs, outputs] = deal(inputs(idx), outputs(idx));
 % generate train/validation/test indices
 [training, validation, testing] = dividerand(numel(inputs), ...
     config.datasets.split.training, config.datasets.split.validate, ...
@@ -30,25 +33,28 @@ layers = [
         maxPooling1dLayer(config.layers.cnn.size, "Padding", "same")], ...
     [config.layers.cnn.layers 1])
     concatenationLayer(1, 2)
-    fullyConnectedLayer(19)
+    fullyConnectedLayer(2 * lengths(end))
     softmaxLayer
     classificationLayer];
-graph = layerGraph(layers);
-graph = disconnectLayers(graph, "biLSTM", "conv1d_1");
-graph = connectLayers(graph, "word-embedding", "conv1d_1");
-graph = connectLayers(graph, "biLSTM", "concat/in2");
+model = layerGraph(layers);
+model = disconnectLayers(model, "biLSTM", "conv1d_1");
+model = connectLayers(model, "word-embedding", "conv1d_1");
+model = connectLayers(model, "biLSTM", "concat/in2");
 % analyzeNetwork(graph);
-%%
+%% training
 options = trainingOptions("adam", ...
-    "ExecutionEnvironment", "auto", ...
-    "GradientThreshold", 1, ...
     "MaxEpochs", config.training.maxepochs, ...
     "ValidationData", {inputs(validation), outputs(validation)}, ...
-    "ValidationFrequency", 50, ...
-    "ValidationPatience", 6, ...
+    "ValidationFrequency", config.training.validationfrequency, ...
+    "ValidationPatience", config.training.validationpatience, ...
+    "OutputNetwork", "best-validation-loss", ...
     "MiniBatchSize", config.training.minibatchsize, ...
     "SequenceLength", "longest", ...
     "Shuffle", "never", ...
-    "Verbose", false, ...
-    "Plots", "training-progress");
-net = trainNetwork(inputs(training), outputs(training), graph, options);
+    "Verbose", true);
+net = trainNetwork(inputs(training), outputs(training), model, options);
+%% testing
+predictions = classify(net, inputs(testing), ...
+    "MiniBatchSize", config.training.minibatchsize);
+accuracy = sum(cellfun(@isequal, predictions, outputs(testing)')) / ...
+    numel(testing);
