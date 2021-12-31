@@ -50,7 +50,7 @@ for dataset = config.datasets.names'
     model = connectLayers(model, "word-embedding", "conv1d_1");
     model = connectLayers(model, "biLSTM", "concat/in2");
     % set training options
-    options = trainingOptions("adam", ... OutputFcn = @(info) true, ... % early stop
+    options = trainingOptions("adam", ...OutputFcn = @(info) true, ... % early stop
         MaxEpochs = config.training.maxepochs, ...
         ValidationData = {inputs(validation), outputs(validation)}, ...
         ValidationFrequency = config.training.validationfrequency, ...
@@ -60,7 +60,7 @@ for dataset = config.datasets.names'
         SequenceLength = "longest", ...
         Shuffle = "never", ...
         Verbose = false);
-    % print active learning header
+    % print traditional learning header
     fprintf("  > traditional learning (word count: %d)\n", ...
         numel(training));
     % train model on full dataset and test
@@ -78,7 +78,7 @@ for dataset = config.datasets.names'
     fprintf("  > active learning (initial word count: %d)\n", ...
         config.training.initialsize);
     % active learning testing loop
-    for strategy = {@entropy @margin @uncertainty @rand}
+    for strategy = {@entropy @margin @uncertainty @random}
         % print query strategy header
         fprintf("    > %s sampling\n", func2str(strategy{:}));
         % initialize selected training indices
@@ -111,9 +111,10 @@ for dataset = config.datasets.names'
                 minibatchsize = config.training.minibatchsize)';
             % query remaining training samples
             [~, queried] = maxk(cellfun(strategy{:}, predictions), ...
-                1);
+                config.training.querysize);
             trainingnotselected = training(~selected);
-            selected(trainingnotselected(queried)) = true;
+            selected(ismember(training, ...
+                trainingnotselected(queried))) = true;
             % retrain existing model on queried samples
             net = trainNetwork(inputs(training(selected)), ...
                 outputs(training(selected)), layerGraph(net), options);

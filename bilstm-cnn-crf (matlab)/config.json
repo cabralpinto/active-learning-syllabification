@@ -1,6 +1,6 @@
 {
     "datasets": {
-        "names": ["portuguese", "italian", "english", "french"],
+        "names": ["italian", "english", "french", "portuguese"],
         "split": {
             "training": 0.7,
             "validate": 0.15,
@@ -30,8 +30,8 @@
         "validationpatience": 10,
         "initialsize": 64,
         "minqueries": 10,
-        "maxqueries": 20,
+        "maxqueries": 30,
         "accuracythreshold": 0.95,
-        "querysize": 32
+        "querysize": 16
     }
 }
