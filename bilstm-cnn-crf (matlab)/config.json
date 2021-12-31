@@ -1,6 +1,6 @@
 {
     "datasets": {
-        "names": ["french"],
+        "names": ["french", "english", "italian", "portuguese"],
         "split": {
             "training": 0.7,
             "validate": 0.15,
@@ -18,7 +18,7 @@
             "units": 300
         },
         "cnn": {
-            "layers": 2,
+            "repeat": 2,
             "filters": 200,
             "size": 2
         }
@@ -26,11 +26,9 @@
     "training": {
         "minibatchsize": 64,
         "maxepochs": 120,
-        "initialLearnRate": 0.01,
-        "decay": 0.01,
-        "momentum": 0.9,
         "queries": 10,
         "validationfrequency": 50,
-        "validationpatience": 10
+        "validationpatience": 10,
+        "initialpercentage": 0.1
     }
 }
