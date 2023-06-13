@@ -1,6 +1,6 @@
 {
     "datasets": {
-        "names": ["italian", "english", "french", "portuguese"],
+        "names": ["english", "french", "italian", "portuguese"],
         "split": {
             "training": 0.7,
             "validate": 0.15,
