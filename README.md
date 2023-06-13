@@ -17,10 +17,12 @@ Before running the project, ensure that you have the following:
 - Run the main.m script to execute the project.
 
 ## Results
-The project demonstrates its effectiveness by achieving impressive accuracy values with minimal labeled data. Specifically, the following results were obtained:
-- Portuguese (Porlex v3) dataset: Achieved higher accuracy values than the approach by Krantz et al. using only 384 words, which corresponds to 1.4% of the original dataset.
-- Italian (PhonItalia) dataset: Achieved higher accuracy values than the approach by Krantz et al. using only 528 words, which corresponds to 0.6% of the original dataset.
+The project showcases its effectiveness by achieving remarkable accuracy values with minimal labeled data. Specifically, the following results were obtained:
+- Portuguese (Porlex v3) dataset: Achieved an accuracy of 96.8% using only 384 words, which corresponds to 1.4% of the original dataset.
+- Italian (PhonItalia) dataset: Achieved an accuracy of 82.0% using only 528 words, which corresponds to 0.6% of the original dataset.
 - French (Lexique 2) dataset: Achieved an accuracy of 95.8% using only 208 words, which is less than 0.01% of the whole dataset.
+
+For both Portuguese and Italian, these results surpass those achieved by training the network on the entire dataset, 95.6% and 81%, respectively.
 
 ## License
 This project is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
