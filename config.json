@@ -1,0 +1,37 @@
+{
+    "datasets": {
+        "names": ["italian", "english", "french", "portuguese"],
+        "split": {
+            "training": 0.7,
+            "validate": 0.15,
+            "testing": 0.15
+        }
+    },
+    "layers": {
+        "embedding": {
+            "dimension": 300
+        },
+        "dropout": {
+            "probability": 0.25
+        },
+        "bilstm": {
+            "units": 300
+        },
+        "cnn": {
+            "repeat": 2,
+            "filters": 200,
+            "size": 2
+        }
+    },
+    "training": {
+        "minibatchsize": 64,
+        "maxepochs": 120,
+        "validationfrequency": 20,
+        "validationpatience": 10,
+        "initialsize": 64,
+        "minqueries": 10,
+        "maxqueries": 30,
+        "accuracythreshold": 0.95,
+        "querysize": 16
+    }
+}
