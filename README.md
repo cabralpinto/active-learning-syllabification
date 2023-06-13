@@ -21,3 +21,9 @@ The project demonstrates its effectiveness by achieving impressive accuracy valu
 - Portuguese (Porlex v3) dataset: Achieved higher accuracy values than the approach by Krantz et al. using only 384 words, which corresponds to 1.4% of the original dataset.
 - Italian (PhonItalia) dataset: Achieved higher accuracy values than the approach by Krantz et al. using only 528 words, which corresponds to 0.6% of the original dataset.
 - French (Lexique 2) dataset: Achieved an accuracy of 95.8% using only 208 words, which is less than 0.01% of the whole dataset.
+
+## License
+This project is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
+
+## Acknowledgments
+We would like to acknowledge the work of Krantz et al. (2019) for providing the neural network architecture used in this project. Their research serves as a foundation for our active learning adaptation.
